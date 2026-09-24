@@ -3,6 +3,9 @@ from typing import Dict, List, Optional, Set, Tuple
 
 # Conocimiento inicial
 class KnowledgeBase: 
+  """
+  Guarda la informacin de estado y valida las reglas del sistema (Base de conocimiento)
+  """
   def __init__(self):
     self.estaciones_cerradas: Set[str] = set()
     self.lineas_inactivas: Set[str] = set()
@@ -25,6 +28,9 @@ class KnowledgeBase:
 
 # Red de transporte
 class TransportNetwork:
+  """
+   Mapa fisico del sistema con una estructura de grafo
+  """
   def __init__(self):
     self.adj: Dict[str, List[Tuple[str, float, str]]] = {}
     self.coordenadas: Dict[str, Tuple[float, float]] = {}
@@ -38,6 +44,9 @@ class TransportNetwork:
     self.adj[origen].append((destino, tiempo, linea))
     self.adj[destino].append((origen, tiempo, linea)) 
 
+  """
+  Calculamos la distancia entre 2 puntos
+  """
   def heuristica(self, estacion_a: str, estacion_b: str) -> float:
     x1, y1 = self.coordenadas[estacion_a]
     x2, y2 = self.coordenadas[estacion_b]
@@ -45,22 +54,32 @@ class TransportNetwork:
 
 # Motor de busqueda inteligente
 class RouterAgent:
+  """
+    Usamos el algoritmo A* para encontrar la mejor ruta entre dos estaciones, considerando las restricciones de la base de conocimiento.
+  """
+
   def __init__(self, network: TransportNetwork, knowledge: KnowledgeBase):
     self.network = network
     self.kb = knowledge
 
   def encontrar_mejor_ruta(self, origen: str, destino: str) -> Optional[Tuple[List[str], float]]:
+    # Validamos que las estaciones existan en la red
     if origen not in self.network.adj or destino not in self.network.adj:
       return None
 
+    # Ordenamos las estaciones por prioridad de busqueda
     pq: List[Tuple[float, float, str, Optional[str]]] = []
     heapq.heappush(pq, (0.0, 0.0, origen, None))
 
     g_score: Dict[str, float] = {origen: 0.0}
+
+    # Diccionario de reconstruccion de ruta
     came_from: Dict[str, Tuple[str, str]] = {}
 
     while pq:
+      # Extraemos el nodo con menor f_score
       _, current_g, current_node, current_line = heapq.heappop(pq)
+
 
       if current_node == destino:
         return self._reconstruir_ruta(came_from, origen, destino), current_g
@@ -84,6 +103,9 @@ class RouterAgent:
     return None
 
   def _reconstruir_ruta(self, came_from: Dict[str, Tuple[str, str]], origen: str, destino: str) -> List[str]:
+    """
+    Reconstruye la ruta desde el destino hasta el origen usando el diccionario came_from.
+    """
     curr = destino
     path = []
 
@@ -98,8 +120,10 @@ class RouterAgent:
 
 # Test del codigo
 if __name__ == "__main__":
+  # Inicializamos la red de transporte y la base de conocimiento
   red = TransportNetwork()
 
+  # Agregamos estaciones y conexiones a la red
   estaciones = {
     "Portal Norte": (0, 10),
     "Calle 100": (0, 7),
@@ -112,7 +136,8 @@ if __name__ == "__main__":
 
   for est, coords in estaciones.items():
     red.agregar_estacion(est, *coords)
-
+  
+  
   red.agregar_conexion("Portal Norte", "Calle 100", 6.0, "Línea Troncal A")
   red.agregar_conexion("Calle 100", "Calle 72", 5.0, "Línea Troncal A")
   red.agregar_conexion("Calle 72", "Marly", 4.0, "Línea Troncal A")
