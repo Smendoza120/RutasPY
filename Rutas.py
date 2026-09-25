@@ -1,4 +1,4 @@
-import heapq
+import heapq #Colas de prioridad
 from typing import Dict, List, Optional, Set, Tuple
 
 # Conocimiento inicial
@@ -71,6 +71,7 @@ class RouterAgent:
     pq: List[Tuple[float, float, str, Optional[str]]] = []
     heapq.heappush(pq, (0.0, 0.0, origen, None))
 
+    # Almacenamos el costo g (tiempo acumulado) para cada nodo
     g_score: Dict[str, float] = {origen: 0.0}
 
     # Diccionario de reconstruccion de ruta
@@ -80,27 +81,32 @@ class RouterAgent:
       # Extraemos el nodo con menor f_score
       _, current_g, current_node, current_line = heapq.heappop(pq)
 
-
+      # Condicional de parada: si llegamos al destino, reconstruimos la ruta
       if current_node == destino:
         return self._reconstruir_ruta(came_from, origen, destino), current_g
 
+      # Si ya hemos encontrado un camino más corto a este nodo, lo ignoramos
       if current_g > g_score.get(current_node, float('inf')):
         continue
 
+      
       for neighbor, tiempo_tramo, linea in self.network.adj[current_node]:
+        # Validamos si el tránsito es válido según la base de conocimiento
         if not self.kb.es_transito_valido(current_node, neighbor, linea):
           continue
 
+        # Calculamos el costo de transbordo si cambiamos de línea
         costo_transbordo = 3.0 if (current_line and current_line != linea) else 0.0
         tentative_g = current_g + tiempo_tramo + costo_transbordo
 
+        # Si encontramos un camino más corto al vecino, actualizamos los puntajes y la ruta
         if tentative_g < g_score.get(neighbor, float('inf')):
           g_score[neighbor] = tentative_g
           f_score = tentative_g + self.network.heuristica(neighbor, destino)
           came_from[neighbor] = (current_node, linea)
           heapq.heappush(pq, (f_score, tentative_g, neighbor, linea))
 
-    return None
+    return None # Si no hay coincidencias, retornamos None
 
   def _reconstruir_ruta(self, came_from: Dict[str, Tuple[str, str]], origen: str, destino: str) -> List[str]:
     """
@@ -137,7 +143,7 @@ if __name__ == "__main__":
   for est, coords in estaciones.items():
     red.agregar_estacion(est, *coords)
   
-  
+  # Conexiones entre estaciones (origen, destino, tiempo en minutos, línea)
   red.agregar_conexion("Portal Norte", "Calle 100", 6.0, "Línea Troncal A")
   red.agregar_conexion("Calle 100", "Calle 72", 5.0, "Línea Troncal A")
   red.agregar_conexion("Calle 72", "Marly", 4.0, "Línea Troncal A")
@@ -147,6 +153,7 @@ if __name__ == "__main__":
   red.agregar_conexion("Suba Calle 100", "Calle 100", 4.0, "Línea B")
   red.agregar_conexion("Calle 100", "Estación Central", 10.0, "Línea Exprés C")
 
+  # Instaciamos la base de conocimiento y el agente de enrutamiento
   kb = KnowledgeBase()
   agente = RouterAgent(red, kb)
 
